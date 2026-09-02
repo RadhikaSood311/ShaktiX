@@ -11,9 +11,10 @@ export const AuthProvider = ({ children }) => {
 
   // Subscribe to Firebase Auth state changes as the single source of truth
   useEffect(() => {
+    console.log("[DEBUG AuthContext] Subscribing to onAuthStateChanged...");
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Map Firebase user object to expose consistent properties for existing components
+        console.log("[DEBUG AuthContext] onAuthStateChanged fired: USER LOGGED IN, UID:", firebaseUser.uid, "email:", firebaseUser.email);
         const formattedUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -25,30 +26,61 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(formattedUser);
       } else {
+        console.log("[DEBUG AuthContext] onAuthStateChanged fired: NO USER (Logged Out)");
         setUser(null);
       }
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
   const login = async ({ email, password }) => {
-    return await loginUser({ email, password });
+    try {
+      console.log("[DEBUG AuthContext] login called for email:", email);
+      const res = await loginUser({ email, password });
+      console.log("[DEBUG AuthContext] loginUser returned:", res);
+      return res;
+    } catch (err) {
+      console.error("[DEBUG AuthContext] login error:", err);
+      return { ok: false, error: err?.message || "Login failed. Please try again." };
+    }
   };
 
   const signup = async (profile) => {
-    // profile contains { name, email, password }
-    return await signupUser(profile);
+    try {
+      console.log("[DEBUG AuthContext] signup called for email:", profile.email);
+      const res = await signupUser(profile);
+      console.log("[DEBUG AuthContext] signupUser returned:", res);
+      return res;
+    } catch (err) {
+      console.error("[DEBUG AuthContext] signup error:", err);
+      return { ok: false, error: err?.message || "Signup failed. Please try again." };
+    }
   };
 
   const loginWithGoogle = async () => {
-    return await loginWithGoogleProvider();
+    try {
+      console.log("[DEBUG AuthContext] loginWithGoogle called");
+      const res = await loginWithGoogleProvider();
+      console.log("[DEBUG AuthContext] loginWithGoogleProvider returned:", res);
+      return res;
+    } catch (err) {
+      console.error("[DEBUG AuthContext] Google login error:", err);
+      return { ok: false, error: err?.message || "Google sign-in failed." };
+    }
   };
 
   const logout = async () => {
-    return await logoutUser();
+    try {
+      console.log("[DEBUG AuthContext] logout called");
+      const res = await logoutUser();
+      console.log("[DEBUG AuthContext] logoutUser returned:", res);
+      return res;
+    } catch (err) {
+      console.error("[DEBUG AuthContext] logout error:", err);
+      return { ok: false, error: err?.message || "Logout failed." };
+    }
   };
 
   const updateProfile = async (updates) => {
@@ -62,7 +94,8 @@ export const AuthProvider = ({ children }) => {
       }
       return { ok: true };
     } catch (err) {
-      return { ok: false, error: err.message };
+      console.error("[DEBUG AuthContext] updateProfile error:", err);
+      return { ok: false, error: err?.message || "Failed to update profile." };
     }
   };
 

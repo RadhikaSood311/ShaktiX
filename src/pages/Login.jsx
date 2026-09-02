@@ -1,6 +1,6 @@
 import Navigation from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 
 const Login = () => {
@@ -38,7 +38,7 @@ const Login = () => {
     
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
       newErrors.email = "Please enter a valid email address";
     }
     
@@ -61,14 +61,15 @@ const Login = () => {
     setErrors({});
     
     try {
-      const res = await login({ email: formData.email, password: formData.password });
+      const res = await login({ email: formData.email.trim(), password: formData.password });
       if (res && res.ok) {
         navigate(from, { replace: true });
       } else {
         setErrors({ general: res?.error || "Sign in failed. Please verify your credentials." });
       }
     } catch (error) {
-      setErrors({ general: "An unexpected error occurred. Please try again." });
+      console.error("Login Page Submit Error:", error);
+      setErrors({ general: error?.message || "An unexpected error occurred. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +86,8 @@ const Login = () => {
         setErrors({ general: res?.error || "Google sign-in failed. Please try again." });
       }
     } catch (error) {
-      setErrors({ general: "An unexpected error occurred during Google sign-in." });
+      console.error("Login Page Google Error:", error);
+      setErrors({ general: error?.message || "An unexpected error occurred during Google sign-in." });
     } finally {
       setIsLoading(false);
     }
@@ -112,17 +114,17 @@ const Login = () => {
 
           <section className="auth-card">
             {errors.general && (
-              <div className="auth-error-banner">
+              <div className="auth-error-banner" role="alert">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2"/>
                   <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/>
                 </svg>
-                {errors.general}
+                <span>{errors.general}</span>
               </div>
             )}
 
-            <form className="auth-form" onSubmit={onSubmit}>
+            <form className="auth-form" onSubmit={onSubmit} noValidate>
               <div className="form-group">
                 <label className="auth-label" htmlFor="email">
                   Email Address
@@ -142,6 +144,7 @@ const Login = () => {
                     placeholder="Enter your email address"
                     value={formData.email}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     required 
                   />
                 </div>
@@ -168,6 +171,7 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     required 
                   />
                   <button
@@ -238,8 +242,8 @@ const Login = () => {
             </div>
 
             <p className="auth-alt">
-              Don't have an account? 
-              <a href="/signup" className="auth-link">Sign up for free</a>
+              Don't have an account?{" "}
+              <Link to="/signup" className="auth-link">Sign up for free</Link>
             </p>
           </section>
         </div>

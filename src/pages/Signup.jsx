@@ -1,6 +1,6 @@
 import Navigation from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 
 const Signup = () => {
@@ -11,8 +11,7 @@ const Signup = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: ""
+    password: ""
   });
   const [errors, setErrors] = useState({});
 
@@ -43,7 +42,7 @@ const Signup = () => {
     
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
       newErrors.email = "Please enter a valid email address";
     }
     
@@ -52,54 +51,67 @@ const Signup = () => {
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-
-    if (formData.confirmPassword !== undefined && formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log("[DEBUG Signup.jsx] validateForm result:", isValid, "errors:", newErrors);
+    return isValid;
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    console.log("[DEBUG Signup.jsx] 1. onSubmit form submission triggered with name:", formData.name.trim(), "email:", formData.email.trim());
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.warn("[DEBUG Signup.jsx] Form validation failed. Stopping submit.");
+      return;
+    }
     
     setIsLoading(true);
     setErrors({});
     
     try {
+      console.log("[DEBUG Signup.jsx] 2. Calling signup() context method...");
       const res = await signup({ 
         name: formData.name.trim(), 
         email: formData.email.trim(), 
         password: formData.password 
       });
 
+      console.log("[DEBUG Signup.jsx] 3. signup() context method returned:", res);
+
       if (res && res.ok) {
+        console.log("[DEBUG Signup.jsx] 4. Signup succeeded! Navigating to '/'");
         navigate("/");
       } else {
+        console.warn("[DEBUG Signup.jsx] 4. Signup failed with error message:", res?.error);
         setErrors({ general: res?.error || "Could not create account. Please try again." });
       }
     } catch (error) {
-      setErrors({ general: "An unexpected error occurred during account creation." });
+      console.error("[DEBUG Signup.jsx] 5. Unexpected Exception in onSubmit:", error);
+      setErrors({ general: error?.message || "An unexpected error occurred during account creation." });
     } finally {
       setIsLoading(false);
+      console.log("[DEBUG Signup.jsx] 6. setIsLoading(false) executed in finally");
     }
   };
 
   const handleGoogleSignup = async () => {
+    console.log("[DEBUG Signup.jsx] Google Signup triggered");
     setIsLoading(true);
     setErrors({});
     try {
       const res = await loginWithGoogle();
+      console.log("[DEBUG Signup.jsx] loginWithGoogle returned:", res);
       if (res && res.ok) {
+        console.log("[DEBUG Signup.jsx] Google Signup succeeded! Navigating to '/'");
         navigate("/");
       } else {
         setErrors({ general: res?.error || "Google sign-up failed. Please try again." });
       }
     } catch (error) {
-      setErrors({ general: "An unexpected error occurred during Google sign-up." });
+      console.error("[DEBUG Signup.jsx] Exception in handleGoogleSignup:", error);
+      setErrors({ general: error?.message || "An unexpected error occurred during Google sign-up." });
     } finally {
       setIsLoading(false);
     }
@@ -126,17 +138,17 @@ const Signup = () => {
 
           <section className="auth-card">
             {errors.general && (
-              <div className="auth-error-banner">
+              <div className="auth-error-banner" role="alert">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2"/>
                   <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/>
                 </svg>
-                {errors.general}
+                <span>{errors.general}</span>
               </div>
             )}
 
-            <form className="auth-form" onSubmit={onSubmit}>
+            <form className="auth-form" onSubmit={onSubmit} noValidate>
               <div className="form-group">
                 <label className="auth-label" htmlFor="name">
                   Full Name
@@ -156,6 +168,7 @@ const Signup = () => {
                     placeholder="Enter your full name"
                     value={formData.name}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     required 
                   />
                 </div>
@@ -181,6 +194,7 @@ const Signup = () => {
                     placeholder="Enter your email address"
                     value={formData.email}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     required 
                   />
                 </div>
@@ -207,6 +221,7 @@ const Signup = () => {
                     placeholder="Create a password (min. 6 characters)"
                     value={formData.password}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                     required 
                   />
                   <button
@@ -277,8 +292,8 @@ const Signup = () => {
             </div>
 
             <p className="auth-alt">
-              Already have an account? 
-              <a href="/login" className="auth-link">Sign in here</a>
+              Already have an account?{" "}
+              <Link to="/login" className="auth-link">Sign in here</Link>
             </p>
           </section>
         </div>
